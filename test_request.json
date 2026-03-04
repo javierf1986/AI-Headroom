@@ -1,0 +1,7 @@
+﻿{
+  "session_id": "spanish-trace",
+  "actor": "user",
+  "text": "¡Hola a todos!",
+  "language": "es",
+  "permissions": ["*"]
+}

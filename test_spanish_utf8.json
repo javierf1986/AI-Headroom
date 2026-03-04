@@ -1,0 +1,7 @@
+﻿{
+  "session_id": "spanish-utf8-test",
+  "actor": "user",
+  "text": "Hola, ¿cómo estás?",
+  "language": "es",
+  "permissions": ["*"]
+}

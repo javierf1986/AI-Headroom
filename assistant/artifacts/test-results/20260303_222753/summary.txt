@@ -1,0 +1,41 @@
+Validation Suite Results
+================================================================================
+Timestamp: 20260303_222753
+Overall passed: True
+
+- english_basic: PASS
+  voice_id: en_US-amy-medium
+  audio_language: en
+  duration_seconds: 2.5309750566893423
+  wav_path: /artifacts/audio/0ad92b81_en_en_US_amy_medium.wav
+  response_preview: Hello!
+
+1, 2, 3  
+
+  checks: {'status_200': True, 'voice_match': True, 'encoding_clean': True, 'wav_exists': True, 'duration_positive': True}
+
+- spanish_basic: PASS
+  voice_id: es_MX-ald-medium
+  audio_language: es
+  duration_seconds: 13.850702947845805
+  wav_path: /artifacts/audio/735cbb90_es_es_MX_ald_medium.wav
+  response_preview: ¿Por qué los peces viven en agua salada?
+
+¡Porque la agua dulce les resulta muy aburrida! 😜  
+
+
+¿Te gustó? ¿Te gustaría escuchar otro? 😄 
+
+  checks: {'status_200': True, 'voice_match': True, 'encoding_clean': True, 'wav_exists': True, 'duration_positive': True}
+
+- spanish_accents: PASS
+  voice_id: es_MX-ald-medium
+  audio_language: es
+  duration_seconds: 73.66530612244898
+  wav_path: /artifacts/audio/b4cfcbba_es_es_MX_ald_medium.wav
+  response_preview: ¡Hola! Como modelo lingüístico de IA, no tengo sentimientos, pero estoy aquí para ayudarte. 
+
+¿Qué tipo de información útil sobre México te interesa? 
+
+Por ejemplo, puedo contarte 
+  checks: {'status_200': True, 'voice_match': True, 'encoding_clean': True, 'wav_exists': True, 'duration_positive': True}

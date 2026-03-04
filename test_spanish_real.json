@@ -1,0 +1,7 @@
+﻿{
+  "session_id": "spanish-real-piper",
+  "actor": "user",
+  "text": "¡Hola! ¿Cómo estás hoy?",
+  "language": "es",
+  "permissions": ["*"]
+}

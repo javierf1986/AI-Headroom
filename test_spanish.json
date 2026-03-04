@@ -1,0 +1,7 @@
+{
+  "session_id": "spanish-debug-2",
+  "actor": "user",
+  "text": "¡Hola! ¿Cómo estás?",
+  "language": "es",
+  "permissions": ["*"]
+}

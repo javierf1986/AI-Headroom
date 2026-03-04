@@ -1,0 +1,39 @@
+{
+  "name": "michael",
+  "display_name": "Michael",
+  "image_path": "/artifacts/sprites/michael.png",
+  "frame_width": 179,
+  "frame_height": 239,
+  "frames_per_row": 4,
+  "total_frames": 12,
+  "viseme_map": {
+    "A": 2,
+    "E": 3,
+    "I": 4,
+    "O": 5,
+    "U": 6,
+    "neutral": 0,
+    "closed": 1,
+    "silence": 0
+  },
+  "blink_frames": [
+    10,
+    11
+  ],
+  "idle_frames": [
+    0,
+    1,
+    2
+  ],
+  "error_frame": 0,
+  "frame_duration_ms": 100,
+  "persona": "You are Michael, a professional and formal AI assistant. You provide precise, technical responses and maintain a business-like demeanor.",
+  "glitch_effects": [
+    "stutter",
+    "pitch"
+  ],
+  "glitch_intensity": 0.1,
+  "glitch_enabled": true,
+  "preferred_voice_en": "en-GB-SoniaNeural",
+  "preferred_voice_es": "es-ES-ElviraNeural"
+}

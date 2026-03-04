@@ -1,0 +1,282 @@
+{
+  "session_id": "validation-english_basic-20260304_085434",
+  "text": " Hello! Here we go counting from 1 to 3:\n\n1\n2\n3\n\nNow, how can I assist you further today?",
+  "tool_results": [],
+  "audio": {
+    "language": "en",
+    "voice_id": "en_US-amy-medium",
+    "wav_path": "/artifacts/audio/d9d3f471_en_en_US_amy_medium.wav",
+    "duration_seconds": 6.373877551020408,
+    "artifact_id": "d9d3f471"
+  },
+  "avatar": {
+    "mode": "viseme",
+    "fallback_mode": "amplitude",
+    "sprite": {
+      "name": "retro-character-v1",
+      "display_name": "Retro Character",
+      "image_path": "/artifacts/sprites/retro-character-v1.png",
+      "frame_width": 64,
+      "frame_height": 64,
+      "frames_per_row": 4,
+      "total_frames": 16
+    },
+    "animation": {
+      "audio_duration_ms": 6373.877551020409,
+      "frames": [
+        {
+          "frame_index": 0,
+          "start_time_ms": 0,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 3,
+          "start_time_ms": 155.4604280736685,
+          "duration_ms": 155.4604280736685,
+          "viseme": "E"
+        },
+        {
+          "frame_index": 5,
+          "start_time_ms": 310.920856147337,
+          "duration_ms": 155.4604280736685,
+          "viseme": "O"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 466.38128422100556,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 3,
+          "start_time_ms": 621.841712294674,
+          "duration_ms": 155.4604280736685,
+          "viseme": "E"
+        },
+        {
+          "frame_index": 3,
+          "start_time_ms": 777.3021403683425,
+          "duration_ms": 155.4604280736685,
+          "viseme": "E"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 932.762568442011,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 3,
+          "start_time_ms": 1088.2229965156796,
+          "duration_ms": 155.4604280736685,
+          "viseme": "E"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 1243.683424589348,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 5,
+          "start_time_ms": 1399.1438526630166,
+          "duration_ms": 155.4604280736685,
+          "viseme": "O"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 1554.604280736685,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 5,
+          "start_time_ms": 1710.0647088103535,
+          "duration_ms": 155.4604280736685,
+          "viseme": "O"
+        },
+        {
+          "frame_index": 6,
+          "start_time_ms": 1865.525136884022,
+          "duration_ms": 155.4604280736685,
+          "viseme": "U"
+        },
+        {
+          "frame_index": 4,
+          "start_time_ms": 2020.9855649576905,
+          "duration_ms": 155.4604280736685,
+          "viseme": "I"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 2176.445993031359,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 5,
+          "start_time_ms": 2331.9064211050277,
+          "duration_ms": 155.4604280736685,
+          "viseme": "O"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 2487.366849178696,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 2642.8272772523646,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 5,
+          "start_time_ms": 2798.287705326033,
+          "duration_ms": 155.4604280736685,
+          "viseme": "O"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 2953.7481333997016,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 5,
+          "start_time_ms": 3109.20856147337,
+          "duration_ms": 155.4604280736685,
+          "viseme": "O"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 3264.6689895470386,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 5,
+          "start_time_ms": 3420.129417620707,
+          "duration_ms": 155.4604280736685,
+          "viseme": "O"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 3575.5898456943755,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 2,
+          "start_time_ms": 3731.050273768044,
+          "duration_ms": 155.4604280736685,
+          "viseme": "A"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 3886.5107018417125,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 4,
+          "start_time_ms": 4041.971129915381,
+          "duration_ms": 155.4604280736685,
+          "viseme": "I"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 4197.43155798905,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 2,
+          "start_time_ms": 4352.891986062718,
+          "duration_ms": 155.4604280736685,
+          "viseme": "A"
+        },
+        {
+          "frame_index": 4,
+          "start_time_ms": 4508.352414136387,
+          "duration_ms": 155.4604280736685,
+          "viseme": "I"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 4663.812842210055,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 4,
+          "start_time_ms": 4819.273270283724,
+          "duration_ms": 155.4604280736685,
+          "viseme": "I"
+        },
+        {
+          "frame_index": 5,
+          "start_time_ms": 4974.733698357392,
+          "duration_ms": 155.4604280736685,
+          "viseme": "O"
+        },
+        {
+          "frame_index": 6,
+          "start_time_ms": 5130.194126431061,
+          "duration_ms": 155.4604280736685,
+          "viseme": "U"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 5285.654554504729,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 6,
+          "start_time_ms": 5441.114982578398,
+          "duration_ms": 155.4604280736685,
+          "viseme": "U"
+        },
+        {
+          "frame_index": 3,
+          "start_time_ms": 5596.575410652066,
+          "duration_ms": 155.4604280736685,
+          "viseme": "E"
+        },
+        {
+          "frame_index": 0,
+          "start_time_ms": 5752.035838725735,
+          "duration_ms": 155.4604280736685,
+          "viseme": "neutral"
+        },
+        {
+          "frame_index": 5,
+          "start_time_ms": 5907.496266799403,
+          "duration_ms": 155.4604280736685,
+          "viseme": "O"
+        },
+        {
+          "frame_index": 2,
+          "start_time_ms": 6062.956694873072,
+          "duration_ms": 155.4604280736685,
+          "viseme": "A"
+        },
+        {
+          "frame_index": 4,
+          "start_time_ms": 6218.41712294674,
+          "duration_ms": 155.4604280736685,
+          "viseme": "I"
+        }
+      ],
+      "idle_frame": 0,
+      "options": {
+        "blink_probability_per_ms": 0.01,
+        "auto_blink": true
+      }
+    },
+    "status": "ready"
+  }
+}

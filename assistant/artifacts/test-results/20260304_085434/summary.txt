@@ -1,0 +1,36 @@
+Validation Suite Results
+================================================================================
+Timestamp: 20260304_085434
+Overall passed: True
+
+- english_basic: PASS
+  voice_id: en_US-amy-medium
+  audio_language: en
+  duration_seconds: 6.373877551020408
+  wav_path: /artifacts/audio/d9d3f471_en_en_US_amy_medium.wav
+  response_preview:  Hello! Here we go counting from 1 to 3:
+
+1
+2
+3
+
+Now, how can I assist you further today?
+  checks: {'status_200': True, 'voice_match': True, 'encoding_clean': True, 'wav_exists': True, 'duration_positive': True}
+
+- spanish_basic: PASS
+  voice_id: es_MX-ald-medium
+  audio_language: es
+  duration_seconds: 15.499319727891157
+  wav_path: /artifacts/audio/720fb5a3_es_es_MX_ald_medium.wav
+  response_preview:  Claro, aquí tienes uno: ¿Por qué los elefantes no van al baile? Porque no les gusta el hip-hop, prefieren el ele-funk! ¡Espero que te haya encantado! ¡Sigue preguntando!
+  checks: {'status_200': True, 'voice_match': True, 'encoding_clean': True, 'wav_exists': True, 'duration_positive': True}
+
+- spanish_accents: PASS
+  voice_id: es_MX-ald-medium
+  audio_language: es
+  duration_seconds: 117.45814058956915
+  wav_path: /artifacts/audio/828551c9_es_es_MX_ald_medium.wav
+  response_preview:  Hola! Estoy bien, ¿y tú cómo estás? Soy un modelo de lenguaje, por lo que no tengo sentimientos, pero espero que pueda ayudarte con tu pregunta.
+
+México es un país ubicado en Amér
+  checks: {'status_200': True, 'voice_match': True, 'encoding_clean': True, 'wav_exists': True, 'duration_positive': True}

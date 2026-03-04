@@ -1,0 +1,26 @@
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.avatar-grid.loading,
+.avatar-grid.error,
+.avatar-grid.empty {
+  grid-column: 1 / -1;
+  padding: 2rem;
+  text-align: center;
+  color: #999;
+  font-size: 1rem;
+}
+
+.avatar-grid.error {
+  color: #d32f2f;
+}
+
+@media (max-width: 768px) {
+  .avatar-grid {
+    grid-template-columns: 1fr;
+  }
+}

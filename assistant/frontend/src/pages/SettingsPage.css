@@ -1,0 +1,886 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+/* Settings Page Layout */
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #000000;
+  color: #00DD00;
+  font-family: 'Perfect DOS VGA 437', 'IBM Plex Mono', 'Source Code Pro', monospace;
+  position: relative;
+  letter-spacing: 0.05em;
+}
+
+/* Scanline overlay effect */
+.settings-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.3) 0px,
+    rgba(0, 0, 0, 0.3) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  z-index: 9999;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem;
+  border-bottom: 2px solid #00DD00;
+  background: #000000;
+  box-shadow: 0 0 10px rgba(0, 221, 0, 0.2);
+}
+
+.settings-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #00DD00;
+  text-shadow: 0 0 10px rgba(0, 221, 0, 0.5);
+}
+
+.btn-back {
+  padding: 0.5rem 1rem;
+  background: #000000;
+  border: 1px solid #00DD00;
+  color: #00DD00;
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-family: 'Perfect DOS VGA 437', 'IBM Plex Mono', 'Source Code Pro', 'Courier New', monospace;
+  transition: all 0.2s;
+}
+
+.btn-back:hover {
+  background: #001A00;
+  border-color: #00FF00;
+  color: #00FF00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
+}
+
+.settings-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  color: #00DD00;
+}
+
+.settings-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border: 1px solid #00DD00;
+  background: rgba(0, 30, 0, 0.3);
+  border-radius: 2px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #00DD00;
+}
+
+.btn-add-avatar {
+  padding: 0.5rem 1rem;
+  background: #000000;
+  border: 1px solid #00DD00;
+  color: #00DD00;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-family: 'Perfect DOS VGA 437', 'IBM Plex Mono', 'Source Code Pro', 'Courier New', monospace;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-add-avatar:hover:not(:disabled) {
+  background: #001A00;
+  border-color: #00FF00;
+  color: #00FF00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
+}
+
+.btn-add-avatar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-section {
+  background: #000000;
+  border: 1px solid #00DD00;
+  border-radius: 0;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  backdrop-filter: none;
+  box-shadow: 0 0 15px rgba(0, 221, 0, 0.15);
+}
+
+.settings-section h2 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #00DD00;
+  text-shadow: 0 0 8px rgba(0, 221, 0, 0.4);
+}
+
+.settings-section > p {
+  color: #00AA00;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+/* Voice Selector Styling */
+.voice-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.voice-loading {
+  color: #007700;
+  font-size: 0.9rem;
+}
+
+.voice-selector-error {
+  padding: 1rem;
+  background: rgba(255, 0, 0, 0.07);
+  border: 1px solid rgba(255, 68, 68, 0.4);
+  color: #FF6666;
+}
+
+.voice-language-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.voice-lang-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #00AA00;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border-bottom: 1px solid #003300;
+  padding-bottom: 0.4rem;
+  margin: 0;
+}
+
+.voice-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.voice-card {
+  display: grid;
+  grid-template-columns: 1.8rem 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.8rem;
+  background: #000000;
+  border: 1px solid #003300;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+  outline: none;
+}
+
+.voice-card:hover {
+  border-color: #00DD00;
+  background: #001A00;
+}
+
+.voice-card.selected {
+  border-color: #00DD00;
+  background: #001400;
+  box-shadow: 0 0 8px rgba(0, 221, 0, 0.18);
+}
+
+.voice-card:focus-visible {
+  border-color: #00FF00;
+  box-shadow: 0 0 0 1px #00FF00;
+}
+
+.voice-gender-badge {
+  font-size: 1.1rem;
+  text-align: center;
+  line-height: 1;
+}
+
+.voice-gender-badge.female { color: #00DDAA; }
+.voice-gender-badge.male   { color: #00AADD; }
+
+.voice-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.voice-name {
+  font-size: 0.92rem;
+  color: #00DD00;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voice-locale {
+  font-size: 0.72rem;
+  color: #006600;
+  letter-spacing: 0.05em;
+}
+
+.voice-preview-btn {
+  background: #000000;
+  border: 1px solid #004400;
+  color: #00AA00;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.75rem;
+  padding: 0.22rem 0.55rem;
+  min-width: 2rem;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.voice-preview-btn:hover:not(:disabled) {
+  border-color: #00DD00;
+  color: #00DD00;
+  box-shadow: 0 0 6px rgba(0, 221, 0, 0.25);
+}
+
+.voice-preview-btn.playing {
+  border-color: #00FFAA;
+  color: #00FFAA;
+  box-shadow: 0 0 8px rgba(0, 255, 170, 0.35);
+}
+
+.voice-preview-btn.loading {
+  color: #007700;
+  cursor: wait;
+}
+
+.voice-preview-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.voice-radio {
+  accent-color: #00DD00;
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.voice-selector.error {
+  padding: 1rem;
+  background: rgba(255, 0, 0, 0.1);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  text-align: center;
+}
+
+
+
+/* Sprite Selector Styling */
+.sprite-selector {
+  width: 100%;
+}
+
+.sprite-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.sprite-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  background: #000000;
+  border: 2px solid #00AA00;
+  border-radius: 0;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.sprite-card:hover {
+  border-color: #00DD00;
+  background: #001A00;
+  transform: none;
+  box-shadow: 0 0 15px rgba(0, 221, 0, 0.3);
+}
+
+.sprite-card.selected {
+  border-color: #00FF00;
+  background: #001A00;
+  box-shadow: 0 0 25px rgba(0, 255, 0, 0.4);
+}
+
+.sprite-preview {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000000;
+  border-radius: 0;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  border: 1px solid #00AA00;
+}
+
+.sprite-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.sprite-info {
+  width: 100%;
+  text-align: center;
+}
+
+.sprite-info h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #00DD00;
+}
+
+.sprite-meta {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.75rem;
+  color: #00AA00;
+}
+
+.sprite-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: #00DD00;
+  color: #000000;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-shadow: 0 0 5px rgba(0, 221, 0, 0.3);
+}
+
+/* Sprite card body (clickable select area) */
+.sprite-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  cursor: pointer;
+  flex: 1;
+}
+
+/* Edit/delete action buttons row on each card */
+.sprite-card-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid #00AA00;
+  padding-top: 0.5rem;
+  width: 100%;
+}
+
+.btn-icon {
+  background: transparent;
+  border: 1px solid #00AA00;
+  color: #00AA00;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  font-size: 1rem;
+  line-height: 1;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.btn-icon:hover:not(:disabled) {
+  border-color: #00FF00;
+  color: #00FF00;
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
+}
+
+.btn-icon:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn-icon-danger:not(:disabled):hover {
+  border-color: #FF4444;
+  color: #FF4444;
+  box-shadow: 0 0 8px rgba(255, 68, 68, 0.3);
+}
+
+/* Sprite edit form (inline in card) */
+.sprite-card.editing {
+  border-color: #00FF00;
+  background: #001500;
+}
+
+.sprite-edit-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+}
+
+.sprite-edit-form h4 {
+  margin: 0 0 0.5rem;
+  color: #00FF00;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #00AA00;
+  padding-bottom: 0.4rem;
+}
+
+.sprite-edit-form label {
+  color: #00CC00;
+  margin-bottom: 0.2rem;
+  display: block;
+  font-size: 0.8rem;
+}
+
+.sprite-edit-form input {
+  width: 100%;
+  background: #000;
+  border: 1px solid #00AA00;
+  color: #00FF00;
+  padding: 0.3rem 0.5rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  box-sizing: border-box;
+}
+
+.sprite-edit-form input:focus {
+  outline: none;
+  border-color: #00FF00;
+  box-shadow: 0 0 6px rgba(0, 255, 0, 0.3);
+}
+
+.sprite-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.edit-error {
+  color: #FF6666;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+/* Delete confirmation banner */
+.sprite-delete-confirm {
+  background: #1A0000;
+  border: 2px solid #FF4444;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  color: #FF8888;
+  font-size: 0.9rem;
+}
+
+.sprite-delete-confirm p {
+  margin: 0 0 0.75rem;
+}
+
+.sprite-delete-confirm strong {
+  color: #FFAAAA;
+}
+
+.sprite-confirm-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-danger {
+  background: #440000;
+  border: 1px solid #FF4444;
+  color: #FF6666;
+  cursor: pointer;
+  padding: 0.4rem 1rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #660000;
+  color: #FF9999;
+  box-shadow: 0 0 8px rgba(255, 68, 68, 0.4);
+}
+
+.btn-danger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Status toast inside sprite selector */
+.sprite-status-msg {
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  border: 1px solid;
+}
+
+.sprite-status-msg.success {
+  background: #001500;
+  border-color: #00AA00;
+  color: #00DD00;
+}
+
+.sprite-status-msg.error {
+  background: #1A0000;
+  border-color: #FF4444;
+  color: #FF8888;
+}
+
+/* Sprite Upload Form Styling */
+.sprite-upload-form {
+  background: #000000;
+  border: 1px solid #00DD00;
+  border-radius: 0;
+  padding: 1.5rem;
+  box-shadow: 0 0 12px rgba(0, 221, 0, 0.15);
+}
+
+.sprite-upload-form form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #00DD00;
+}
+
+.form-group legend {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  color: #00DD00;
+}
+
+.form-group fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="file"],
+.form-group textarea {
+  padding: 0.75rem;
+  background: #000000;
+  border: 1px solid #00DD00;
+  color: #00DD00;
+  border-radius: 0;
+  font-size: 1rem;
+  transition: all 0.2s;
+  font-family: 'Perfect DOS VGA 437', 'IBM Plex Mono', 'Source Code Pro', 'Courier New', monospace;
+}
+
+.form-group input[type="text"]:hover,
+.form-group input[type="number"]:hover,
+.form-group input[type="file"]:hover,
+.form-group textarea:hover {
+  border-color: #00DD00;
+  background: #001A00;
+  box-shadow: 0 0 8px rgba(0, 221, 0, 0.2);
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group input[type="file"]:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #00FF00;
+  background: #001A00;
+  box-shadow: 0 0 12px rgba(0, 255, 0, 0.4);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-group input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  color: #00AA00;
+  border-color: #00AA00;
+}
+
+.form-group small {
+  display: block;
+  margin-top: 0.25rem;
+  color: #00AA00;
+  font-size: 0.85rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-col label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: #00DD00;
+}
+
+.glitch-settings {
+  border: 1px solid #00AA00;
+  padding: 0.8rem;
+  background: rgba(0, 221, 0, 0.04);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+}
+
+.glitch-settings input[type="range"] {
+  width: 100%;
+}
+
+.effects-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.effect-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #00AA00;
+  padding: 0.3rem 0.5rem;
+  background: rgba(0, 221, 0, 0.06);
+  font-size: 0.85rem;
+}
+
+.effect-option input[type="checkbox"] {
+  width: auto;
+}
+
+.message {
+  padding: 1rem;
+  border-radius: 0;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  border-left: 3px solid;
+  font-family: 'Perfect DOS VGA 437', 'IBM Plex Mono', 'Source Code Pro', 'Courier New', monospace;
+}
+
+.message.success {
+  background: rgba(0, 255, 0, 0.05);
+  border-left-color: #00FF00;
+  color: #00FF00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+}
+
+.message.error {
+  background: rgba(255, 85, 85, 0.05);
+  border-left-color: #FF5555;
+  color: #FF5555;
+  box-shadow: 0 0 10px rgba(255, 85, 85, 0.2);
+}
+
+/* Settings Message */
+.settings-message {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 1rem 1.5rem;
+  border-radius: 0;
+  font-size: 0.95rem;
+  max-width: 400px;
+  animation: slideIn 0.3s ease-out;
+  z-index: 1000;
+  border-left: 3px solid;
+  font-family: 'Perfect DOS VGA 437', 'IBM Plex Mono', 'Source Code Pro', 'Courier New', monospace;
+}
+
+.settings-message.success {
+  background: rgba(0, 255, 0, 0.05);
+  border-left-color: #00FF00;
+  color: #00FF00;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+.settings-message.error {
+  background: rgba(255, 85, 85, 0.05);
+  border-left-color: #FF5555;
+  color: #FF5555;
+  box-shadow: 0 0 15px rgba(255, 85, 85, 0.3);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Settings Actions */
+.settings-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #00DD00;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #00DD00;
+  border-radius: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Perfect DOS VGA 437', 'IBM Plex Mono', 'Source Code Pro', 'Courier New', monospace;
+}
+
+.btn-primary {
+  background: #000000;
+  color: #00DD00;
+}
+
+.btn-primary:hover:not(:disabled) {
+  border-color: #00FF00;
+  color: #00FF00;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: #001A00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  color: #00AA00;
+}
+
+.btn-secondary {
+  background: #000000;
+  color: #00AA00;
+  border-color: #00AA00;
+}
+
+.btn-secondary:hover {
+  background: #001A00;
+  border-color: #00DD00;
+  color: #00DD00;
+  box-shadow: 0 0 10px rgba(0, 221, 0, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .settings-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .settings-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .settings-content {
+    padding: 1rem;
+  }
+
+  .settings-section {
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .voice-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .sprite-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+  }
+
+  .sprite-preview {
+    height: 100px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-actions {
+    flex-direction: column;
+  }
+
+  .settings-message {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    max-width: none;
+  }
+}

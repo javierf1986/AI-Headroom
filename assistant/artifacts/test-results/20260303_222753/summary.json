@@ -1,0 +1,63 @@
+{
+  "timestamp": "20260303_222753",
+  "overall_passed": true,
+  "tests": [
+    {
+      "test": "english_basic",
+      "input_language": "en",
+      "input_text": "Say hello and count to 3",
+      "http_status": 200,
+      "voice_id": "en_US-amy-medium",
+      "audio_language": "en",
+      "duration_seconds": 2.5309750566893423,
+      "wav_path": "/artifacts/audio/0ad92b81_en_en_US_amy_medium.wav",
+      "response_text_preview": "Hello!\n\n1, 2, 3  \n",
+      "checks": {
+        "status_200": true,
+        "voice_match": true,
+        "encoding_clean": true,
+        "wav_exists": true,
+        "duration_positive": true
+      },
+      "passed": true
+    },
+    {
+      "test": "spanish_basic",
+      "input_language": "es",
+      "input_text": "¡Hola! Cuéntame un chiste en español",
+      "http_status": 200,
+      "voice_id": "es_MX-ald-medium",
+      "audio_language": "es",
+      "duration_seconds": 13.850702947845805,
+      "wav_path": "/artifacts/audio/735cbb90_es_es_MX_ald_medium.wav",
+      "response_text_preview": "¿Por qué los peces viven en agua salada?\n\n¡Porque la agua dulce les resulta muy aburrida! 😜  \n\n\n¿Te gustó? ¿Te gustaría escuchar otro? 😄 \n",
+      "checks": {
+        "status_200": true,
+        "voice_match": true,
+        "encoding_clean": true,
+        "wav_exists": true,
+        "duration_positive": true
+      },
+      "passed": true
+    },
+    {
+      "test": "spanish_accents",
+      "input_language": "es",
+      "input_text": "¿Cómo estás? También quiero información útil sobre México.",
+      "http_status": 200,
+      "voice_id": "es_MX-ald-medium",
+      "audio_language": "es",
+      "duration_seconds": 73.66530612244898,
+      "wav_path": "/artifacts/audio/b4cfcbba_es_es_MX_ald_medium.wav",
+      "response_text_preview": "¡Hola! Como modelo lingüístico de IA, no tengo sentimientos, pero estoy aquí para ayudarte. \n\n¿Qué tipo de información útil sobre México te interesa? \n\nPor ejemplo, puedo contarte ",
+      "checks": {
+        "status_200": true,
+        "voice_match": true,
+        "encoding_clean": true,
+        "wav_exists": true,
+        "duration_positive": true
+      },
+      "passed": true
+    }
+  ]
+}

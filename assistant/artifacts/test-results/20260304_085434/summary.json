@@ -1,0 +1,63 @@
+{
+  "timestamp": "20260304_085434",
+  "overall_passed": true,
+  "tests": [
+    {
+      "test": "english_basic",
+      "input_language": "en",
+      "input_text": "Say hello and count to 3",
+      "http_status": 200,
+      "voice_id": "en_US-amy-medium",
+      "audio_language": "en",
+      "duration_seconds": 6.373877551020408,
+      "wav_path": "/artifacts/audio/d9d3f471_en_en_US_amy_medium.wav",
+      "response_text_preview": " Hello! Here we go counting from 1 to 3:\n\n1\n2\n3\n\nNow, how can I assist you further today?",
+      "checks": {
+        "status_200": true,
+        "voice_match": true,
+        "encoding_clean": true,
+        "wav_exists": true,
+        "duration_positive": true
+      },
+      "passed": true
+    },
+    {
+      "test": "spanish_basic",
+      "input_language": "es",
+      "input_text": "¡Hola! Cuéntame un chiste en español",
+      "http_status": 200,
+      "voice_id": "es_MX-ald-medium",
+      "audio_language": "es",
+      "duration_seconds": 15.499319727891157,
+      "wav_path": "/artifacts/audio/720fb5a3_es_es_MX_ald_medium.wav",
+      "response_text_preview": " Claro, aquí tienes uno: ¿Por qué los elefantes no van al baile? Porque no les gusta el hip-hop, prefieren el ele-funk! ¡Espero que te haya encantado! ¡Sigue preguntando!",
+      "checks": {
+        "status_200": true,
+        "voice_match": true,
+        "encoding_clean": true,
+        "wav_exists": true,
+        "duration_positive": true
+      },
+      "passed": true
+    },
+    {
+      "test": "spanish_accents",
+      "input_language": "es",
+      "input_text": "¿Cómo estás? También quiero información útil sobre México.",
+      "http_status": 200,
+      "voice_id": "es_MX-ald-medium",
+      "audio_language": "es",
+      "duration_seconds": 117.45814058956915,
+      "wav_path": "/artifacts/audio/828551c9_es_es_MX_ald_medium.wav",
+      "response_text_preview": " Hola! Estoy bien, ¿y tú cómo estás? Soy un modelo de lenguaje, por lo que no tengo sentimientos, pero espero que pueda ayudarte con tu pregunta.\n\nMéxico es un país ubicado en Amér",
+      "checks": {
+        "status_200": true,
+        "voice_match": true,
+        "encoding_clean": true,
+        "wav_exists": true,
+        "duration_positive": true
+      },
+      "passed": true
+    }
+  ]
+}
