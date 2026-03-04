@@ -62,31 +62,54 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
   useLayoutEffect(() => {
     if (!containerRef.current) return;
 
+    const container = containerRef.current;
+    let resizeTimeoutId: ReturnType<typeof setTimeout>;
+
     const updateCanvasSize = () => {
-      const container = containerRef.current;
       if (!container) return;
 
-      // Get the actual available width (container width - padding)
+      // Get the actual available width
       const containerWidth = container.clientWidth;
-      const computedStyle = window.getComputedStyle(container);
-      const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
-      const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
+      
+      console.log('[AvatarStage] Container width:', containerWidth);
 
-      // Available width for canvas
-      const availableWidth = containerWidth - paddingLeft - paddingRight;
+      if (containerWidth <= 0) {
+        console.log('[AvatarStage] Container width is 0, skipping size update');
+        return;
+      }
 
-      // Canvas should be square, so height = width
-      const size = Math.max(200, Math.min(availableWidth, 600)); // Min 200px, max 600px
+      // Canvas should be square and fill the width
+      // Leave room for padding and gaps
+      const size = Math.max(200, Math.min(containerWidth - 32, 600)); // Min 200px, max 600px, account for padding
+
+      console.log('[AvatarStage] Calculated canvas size:', size);
 
       setCanvasSize({ width: size, height: size });
     };
 
-    // Update on mount and window resize
+    // Debounced version for resize events
+    const handleResize = () => {
+      clearTimeout(resizeTimeoutId);
+      resizeTimeoutId = setTimeout(updateCanvasSize, 100);
+    };
+
+    // Use ResizeObserver for container changes
+    const resizeObserver = new ResizeObserver(() => {
+      updateCanvasSize();
+    });
+
+    resizeObserver.observe(container);
+    
+    // Also listen to window resize events
+    window.addEventListener('resize', handleResize);
+    
+    // Initial call
     updateCanvasSize();
-    window.addEventListener('resize', updateCanvasSize);
 
     return () => {
-      window.removeEventListener('resize', updateCanvasSize);
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimeoutId);
     };
   }, []);
 
@@ -244,7 +267,7 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
 
   if (isLoadingAvatar) {
     return (
-      <div className="avatar-stage avatar-stage--placeholder">
+      <div className="avatar-stage avatar-stage--placeholder" ref={containerRef}>
         <p className="avatar-status-text">Loading avatar...</p>
       </div>
     );
@@ -252,7 +275,7 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
 
   if (!animation) {
     return (
-      <div className="avatar-stage avatar-stage--placeholder">
+      <div className="avatar-stage avatar-stage--placeholder" ref={containerRef}>
         <p className="avatar-status-text">No avatar loaded</p>
       </div>
     );
