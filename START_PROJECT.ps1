@@ -3,6 +3,16 @@ param(
     [switch]$SkipOllama
 )
 
+# Self-elevate to Administrator if not already elevated.
+# Without admin rights, taskkill cannot kill processes owned by other sessions.
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    $argList = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Model `"$Model`""
+    if ($SkipOllama) { $argList += " -SkipOllama" }
+    Start-Process powershell -Verb RunAs -ArgumentList $argList
+    exit
+}
+
 $ErrorActionPreference = "Stop"
 $WorkspaceRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 
