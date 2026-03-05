@@ -88,10 +88,9 @@ if (-not $SkipOllama -and (Test-Path $OllamaScript)) {
 }
 
 # -- Step 2: Backend ---------------------------------------------------------
-# Write a launcher script to disk so uvicorn runs as a direct child of the
-# visible PowerShell window. taskkill /F /T on the WINDOW PID cascades through
-# the whole tree (window -> powershell -> uvicorn -> workers).
-# "Press Enter to close" keeps the window open on failure so you can read errors.
+# The launcher uses TcpListener to test if port 8000 is truly bindable.
+# Get-NetTCPConnection can lie (reports ghost/zombie sockets as LISTEN even
+# when the owning process is dead). TcpListener.Start() never lies.
 Write-Host "[2] Starting Backend (port 8000)..." -ForegroundColor Cyan
 
 Set-Content -Path $BackendLauncher -Encoding UTF8 -Value @"
@@ -99,6 +98,36 @@ Set-Content -Path $BackendLauncher -Encoding UTF8 -Value @"
 `$env:PYTHONPATH = '$BackendPath'
 Set-Location '$BackendPath'
 Write-Host 'Backend starting...' -ForegroundColor Cyan
+
+# -- Wait until port 8000 is actually bindable (TcpListener never lies) ----
+Write-Host 'Checking port 8000...' -ForegroundColor Yellow
+`$portClear = `$false
+for (`$w = 0; `$w -lt 60; `$w += 3) {
+    try {
+        `$l = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, 8000)
+        `$l.Start()
+        `$l.Stop()
+        `$portClear = `$true
+        break
+    } catch {
+        Write-Host "  Port 8000 occupied (`${w}s elapsed) -- killing and retrying..." -ForegroundColor Yellow
+        `$foundPids = netstat -ano | Select-String '0\.0\.0\.0:8000 ' |
+            ForEach-Object { (`$_.ToString().Trim() -split '\s+')[-1] } |
+            Where-Object { `$_ -match '^\d+`$' -and `$_ -ne '0' } |
+            Sort-Object -Unique
+        foreach (`$p in `$foundPids) { cmd /c "taskkill /F /T /PID `$p" 2>`$null }
+        Start-Sleep -Seconds 3
+    }
+}
+if (-not `$portClear) {
+    Write-Host '' -ForegroundColor Red
+    Write-Host 'ERROR: Port 8000 could not be freed after 60s.' -ForegroundColor Red
+    Write-Host 'A system reboot may be needed to clear a ghost socket.' -ForegroundColor Red
+    Read-Host 'Press Enter to close'
+    exit 1
+}
+Write-Host '  Port 8000 is free.' -ForegroundColor Green
+
 & '$PythonExe' -m uvicorn backend.app:app --host 0.0.0.0 --port 8000
 Write-Host ''
 Write-Host '=== Backend has stopped. See errors above. ===' -ForegroundColor Red
@@ -114,7 +143,7 @@ $backendWin = Start-Process powershell `
 $backendWin.Id | Set-Content $BackendPidFile
 Write-Host "    Window PID $($backendWin.Id) saved to .backend.pid" -ForegroundColor Yellow
 Write-Host "    Polling /health" -ForegroundColor Yellow
-Start-Sleep -Seconds 4
+Start-Sleep -Seconds 6
 
 $backendReady = $false
 for ($i = 0; $i -lt 30; $i++) {
