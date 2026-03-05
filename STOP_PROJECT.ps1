@@ -1,77 +1,92 @@
-# STOP_PROJECT.ps1
-# Kills all processes related to the AI Assistant project.
-# Targets: uvicorn (port 8000), vite dev server (port 5173), ollama (port 11434),
-#          and any stray python/node processes running from this workspace.
+#Requires -Version 5.0
+$ErrorActionPreference = "Continue"
+$scriptPath    = $MyInvocation.MyCommand.Path
+$WorkspaceRoot = Split-Path -Parent $scriptPath
 
-# Self-elevate to Administrator — needed to kill processes in other sessions
+# -- Self-elevate to Administrator -----------------------------------------
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Wait
+    Write-Host "Requesting Administrator privileges..." -ForegroundColor Yellow
+    Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`"" -Wait
     exit
 }
 
-$WorkspaceRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$PidFile = "$WorkspaceRoot\.running_pids"
+$BackendPidFile   = "$WorkspaceRoot\.backend.pid"
+$FrontendPidFile  = "$WorkspaceRoot\.frontend.pid"
+$BackendLauncher  = "$WorkspaceRoot\.backend_launch.ps1"
+$FrontendLauncher = "$WorkspaceRoot\.frontend_launch.ps1"
+$LegacyPidFile    = "$WorkspaceRoot\.running_pids"
 
-Write-Host "`n[STOP] Stopping AI Assistant services...`n" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "================================================" -ForegroundColor Yellow
+Write-Host "   AI Assistant - Stopping Services             " -ForegroundColor Yellow
+Write-Host "================================================" -ForegroundColor Yellow
+Write-Host ""
 
-# ── 0. Kill by saved PIDs (most precise — written by START_PROJECT.ps1) ──────
-if (Test-Path $PidFile) {
-    Get-Content $PidFile | ForEach-Object {
+# -- 0. Kill by saved window PIDs (most precise) ---------------------------
+# taskkill /F /T kills the named window process AND all its children.
+if (Test-Path $BackendPidFile) {
+    $bpid = [int](Get-Content $BackendPidFile -Raw).Trim()
+    Write-Host "  Killing backend window (PID $bpid)..." -ForegroundColor Yellow
+    cmd /c "taskkill /F /T /PID $bpid" 2>$null
+    Remove-Item $BackendPidFile -Force -ErrorAction SilentlyContinue
+}
+
+if (Test-Path $FrontendPidFile) {
+    $fpid = [int](Get-Content $FrontendPidFile -Raw).Trim()
+    Write-Host "  Killing frontend window (PID $fpid)..." -ForegroundColor Yellow
+    cmd /c "taskkill /F /T /PID $fpid" 2>$null
+    Remove-Item $FrontendPidFile -Force -ErrorAction SilentlyContinue
+}
+
+# Legacy .running_pids format (old scripts wrote "backend=1234" lines)
+if (Test-Path $LegacyPidFile) {
+    Get-Content $LegacyPidFile | ForEach-Object {
         if ($_ -match '=(\d+)$') {
             $p = [int]$Matches[1]
+            Write-Host "  Killing legacy PID $p ($_)..." -ForegroundColor Yellow
             cmd /c "taskkill /F /T /PID $p" 2>$null
-            Write-Host "  Killed saved PID $p ($_)" -ForegroundColor Yellow
         }
     }
-    Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
+    Remove-Item $LegacyPidFile -Force -ErrorAction SilentlyContinue
 }
 
-# ── 1. Kill by port (catches anything not in the PID file) ───────────────────
-foreach ($port in @(8000, 5173, 5174, 11434)) {
+# -- 1. Port scan fallback --------------------------------------------------
+# Catches anything still holding a port even if the PID file was stale.
+Start-Sleep -Seconds 1
+foreach ($port in @(8000, 5173, 5174)) {
     $conns = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue |
-             Where-Object { $_.State -in @('Listen','Established') }
+             Where-Object { $_.State -in @('Listen', 'Established') }
     if (-not $conns) { continue }
-
     $owningPids = $conns | Select-Object -ExpandProperty OwningProcess -Unique
     foreach ($p in $owningPids) {
-        $name = (Get-Process -Id $p -ErrorAction SilentlyContinue).Name
+        $pname = (Get-Process -Id $p -ErrorAction SilentlyContinue).Name
+        Write-Host "  Killing PID $p ($pname) still on port $port..." -ForegroundColor Yellow
         cmd /c "taskkill /F /T /PID $p" 2>$null
-        Write-Host "  Killed PID $p ($name) on port $port" -ForegroundColor Yellow
     }
 }
 
-# ── 2. Kill any uvicorn processes anywhere on the machine ────────────────────
-Get-Process -Name "uvicorn" -ErrorAction SilentlyContinue | ForEach-Object {
-    cmd /c "taskkill /F /T /PID $($_.Id)" 2>$null
-    Write-Host "  Killed stray uvicorn PID $($_.Id)" -ForegroundColor Yellow
-}
-
-# ── 3. Kill python processes running from this workspace's venv ──────────────
+# -- 2. Kill any remaining venv python processes ----------------------------
 Get-WmiObject Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
     Where-Object { $_.ExecutablePath -like "$WorkspaceRoot*" } |
     ForEach-Object {
+        Write-Host "  Killing venv python (PID $($_.ProcessId))..." -ForegroundColor Yellow
         cmd /c "taskkill /F /T /PID $($_.ProcessId)" 2>$null
-        Write-Host "  Killed python PID $($_.ProcessId) ($($_.CommandLine))" -ForegroundColor Yellow
     }
 
-# ── 4. Kill node/npm processes running from this workspace ───────────────────
+# -- 3. Kill any remaining workspace node processes (best-effort) -----------
 Get-WmiObject Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue |
     Where-Object { $_.CommandLine -like "*$WorkspaceRoot*" } |
     ForEach-Object {
+        Write-Host "  Killing node (PID $($_.ProcessId))..." -ForegroundColor Yellow
         cmd /c "taskkill /F /T /PID $($_.ProcessId)" 2>$null
-        Write-Host "  Killed node PID $($_.ProcessId)" -ForegroundColor Yellow
     }
 
-# ── 5. Clean up any PowerShell background jobs ───────────────────────────────
-$jobs = Get-Job -ErrorAction SilentlyContinue
-if ($jobs) {
-    $jobs | Stop-Job -ErrorAction SilentlyContinue
-    $jobs | Remove-Job -ErrorAction SilentlyContinue
-    Write-Host "  Removed $($jobs.Count) background job(s)" -ForegroundColor Yellow
-}
+# -- 4. Clean up temp launcher files ----------------------------------------
+Remove-Item $BackendLauncher  -Force -ErrorAction SilentlyContinue
+Remove-Item $FrontendLauncher -Force -ErrorAction SilentlyContinue
 
-# ── 6. Confirm ports are clear ───────────────────────────────────────────────
+# -- 5. Confirm ports are free -----------------------------------------------
 Start-Sleep -Seconds 2
 $stillBusy = @()
 foreach ($port in @(8000, 5173)) {
@@ -80,9 +95,15 @@ foreach ($port in @(8000, 5173)) {
     }
 }
 
+Write-Host ""
 if ($stillBusy.Count -eq 0) {
-    Write-Host "`n[OK] All services stopped. Ports 8000 and 5173 are free.`n" -ForegroundColor Green
+    Write-Host "================================================" -ForegroundColor Green
+    Write-Host "   All services stopped. Ports 8000+5173 free.  " -ForegroundColor Green
+    Write-Host "================================================" -ForegroundColor Green
 } else {
-    Write-Host "`n[WARN] Ports still occupied: $($stillBusy -join ', ')" -ForegroundColor Red
-    Write-Host "       These processes may require manual intervention.`n" -ForegroundColor Red
+    Write-Host "================================================" -ForegroundColor Red
+    Write-Host "   WARN: Ports still busy: $($stillBusy -join ', ')  " -ForegroundColor Red
+    Write-Host "   These may need manual intervention.           " -ForegroundColor Red
+    Write-Host "================================================" -ForegroundColor Red
 }
+Write-Host ""

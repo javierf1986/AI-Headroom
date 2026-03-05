@@ -1,1 +1,5 @@
 .running_pids
+.backend.pid
+.frontend.pid
+.backend_launch.ps1
+.frontend_launch.ps1

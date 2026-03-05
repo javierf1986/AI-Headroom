@@ -1,188 +1,199 @@
+#Requires -Version 5.0
 param(
     [string]$Model = "mistral:7b-instruct",
     [switch]$SkipOllama
 )
 
-$ErrorActionPreference = "Stop"
-$WorkspaceRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ErrorActionPreference = "Continue"
+$scriptPath    = $MyInvocation.MyCommand.Path
+$WorkspaceRoot = Split-Path -Parent $scriptPath
 
-Write-Host "`n[*] AI Assistant - Full Project Startup`n" -ForegroundColor Cyan
-
-# Verify paths
-$PythonExe = "$WorkspaceRoot\.venv\Scripts\python.exe"
-$BackendPath = "$WorkspaceRoot\assistant"
-$FrontendPath = "$WorkspaceRoot\assistant\frontend"
-$OllamaScript = "$WorkspaceRoot\scripts\start_ollama.ps1"
-
-if (-not (Test-Path $PythonExe)) {
-    Write-Host "ERROR: Python not found at $PythonExe" -ForegroundColor Red
-    exit 1
+# -- Self-elevate to Administrator -----------------------------------------
+# Needed so taskkill can kill processes owned by any session.
+# Once elevated, STOP_PROJECT runs inline -- no second UAC popup.
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    $argList = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`" -Model `"$Model`""
+    if ($SkipOllama) { $argList += " -SkipOllama" }
+    Write-Host "Requesting Administrator privileges..." -ForegroundColor Yellow
+    Start-Process powershell -Verb RunAs -ArgumentList $argList -Wait
+    exit
 }
 
-if (-not (Test-Path $BackendPath)) {
-    Write-Host "ERROR: Backend not found at $BackendPath" -ForegroundColor Red
-    exit 1
-}
-
-if (-not (Test-Path $FrontendPath)) {
-    Write-Host "ERROR: Frontend not found at $FrontendPath" -ForegroundColor Red
-    exit 1
-}
-
-# STEP 0: Clean up existing jobs and processes
-Write-Host "[0] Stopping any existing services..." -ForegroundColor Yellow
-& "$WorkspaceRoot\STOP_PROJECT.ps1"
-Write-Host "    Done" -ForegroundColor Green
+Write-Host ""
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host "   AI Assistant - Project Startup               " -ForegroundColor Cyan
+Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# STEP 1: Ollama (optional)
-if (-not $SkipOllama) {
+# -- Paths ------------------------------------------------------------------
+$PythonExe        = "$WorkspaceRoot\.venv\Scripts\python.exe"
+$BackendPath      = "$WorkspaceRoot\assistant"
+$FrontendPath     = "$WorkspaceRoot\assistant\frontend"
+$OllamaScript     = "$WorkspaceRoot\scripts\start_ollama.ps1"
+$BackendPidFile   = "$WorkspaceRoot\.backend.pid"
+$FrontendPidFile  = "$WorkspaceRoot\.frontend.pid"
+$BackendLauncher  = "$WorkspaceRoot\.backend_launch.ps1"
+$FrontendLauncher = "$WorkspaceRoot\.frontend_launch.ps1"
+
+# -- Pre-flight checks -------------------------------------------------------
+Write-Host "[CHECK] Verifying required components..." -ForegroundColor Yellow
+$prefailed = $false
+
+if (-not (Test-Path $PythonExe)) {
+    Write-Host "  ERROR: Python venv not found at: $PythonExe" -ForegroundColor Red
+    $prefailed = $true
+} else { Write-Host "  OK: Python found" -ForegroundColor Green }
+
+if (-not (Test-Path $BackendPath)) {
+    Write-Host "  ERROR: Backend not found at: $BackendPath" -ForegroundColor Red
+    $prefailed = $true
+} else { Write-Host "  OK: Backend found" -ForegroundColor Green }
+
+if (-not (Test-Path $FrontendPath)) {
+    Write-Host "  ERROR: Frontend not found at: $FrontendPath" -ForegroundColor Red
+    $prefailed = $true
+} else { Write-Host "  OK: Frontend found" -ForegroundColor Green }
+
+# Discover npm dynamically -- handles nvm, Chocolatey, and standard installs
+$npmExe = (Get-Command npm -ErrorAction SilentlyContinue).Source
+if (-not $npmExe) {
+    Write-Host "  ERROR: npm not found in PATH. Install Node.js from https://nodejs.org" -ForegroundColor Red
+    $prefailed = $true
+} else { Write-Host "  OK: npm found at $npmExe" -ForegroundColor Green }
+
+if ($prefailed) {
+    Write-Host ""
+    Write-Host "Pre-flight check failed. Fix the errors above and try again." -ForegroundColor Red
+    Read-Host "Press Enter to exit"
+    exit 1
+}
+Write-Host ""
+
+# -- Step 0: Stop any existing services -------------------------------------
+# Already elevated -- STOP_PROJECT runs inline, same token, no second UAC.
+Write-Host "[0] Stopping any existing services..." -ForegroundColor Yellow
+& "$WorkspaceRoot\STOP_PROJECT.ps1"
+Write-Host ""
+
+# -- Step 1: Ollama ----------------------------------------------------------
+if (-not $SkipOllama -and (Test-Path $OllamaScript)) {
     Write-Host "[1] Starting Ollama..." -ForegroundColor Cyan
-    try {
-        if (Test-Path $OllamaScript) {
-            & $OllamaScript -Model $Model
-        }
-    } catch {
-        Write-Host "    Warning: Ollama failed, continuing anyway..." -ForegroundColor Yellow
-    }
+    try { & $OllamaScript -Model $Model }
+    catch { Write-Host "    Warning: Ollama failed, continuing." -ForegroundColor Yellow }
     Write-Host ""
 } else {
-    Write-Host "[1] Skipping Ollama (--SkipOllama)" -ForegroundColor Gray
+    Write-Host "[1] Skipping Ollama." -ForegroundColor DarkGray
     Write-Host ""
 }
 
-# PID file — lets STOP_PROJECT kill processes directly by PID
-$PidFile = "$WorkspaceRoot\.running_pids"
+# -- Step 2: Backend ---------------------------------------------------------
+# Write a launcher script to disk so uvicorn runs as a direct child of the
+# visible PowerShell window. taskkill /F /T on the WINDOW PID cascades through
+# the whole tree (window -> powershell -> uvicorn -> workers).
+# "Press Enter to close" keeps the window open on failure so you can read errors.
+Write-Host "[2] Starting Backend (port 8000)..." -ForegroundColor Cyan
 
-# STEP 2: Backend
-Write-Host "[2] Starting Backend API..." -ForegroundColor Cyan
+Set-Content -Path $BackendLauncher -Encoding UTF8 -Value @"
+`$Host.UI.RawUI.WindowTitle = 'AI Assistant - Backend (port 8000)'
+`$env:PYTHONPATH = '$BackendPath'
+Set-Location '$BackendPath'
+Write-Host 'Backend starting...' -ForegroundColor Cyan
+& '$PythonExe' -m uvicorn backend.app:app --host 0.0.0.0 --port 8000
+Write-Host ''
+Write-Host '=== Backend has stopped. See errors above. ===' -ForegroundColor Red
+Read-Host 'Press Enter to close'
+"@
 
-$env:PYTHONPATH = $BackendPath
-$backendProc = Start-Process -FilePath $PythonExe `
-    -ArgumentList "-m uvicorn backend.app:app --host 0.0.0.0 --port 8000" `
-    -WorkingDirectory $BackendPath `
-    -PassThru -WindowStyle Hidden
+# Start-Process -PassThru gives the WINDOW process object.
+# We save the window PID (not python's PID). One taskkill /T kills the tree.
+$backendWin = Start-Process powershell `
+    -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$BackendLauncher`"" `
+    -PassThru
 
-"backend=$($backendProc.Id)" | Set-Content $PidFile
-Write-Host "    Backend PID: $($backendProc.Id)" -ForegroundColor Yellow
-Write-Host "    Waiting for backend to start..." -ForegroundColor Yellow
-Start-Sleep -Seconds 3
+$backendWin.Id | Set-Content $BackendPidFile
+Write-Host "    Window PID $($backendWin.Id) saved to .backend.pid" -ForegroundColor Yellow
+Write-Host "    Polling /health" -ForegroundColor Yellow
+Start-Sleep -Seconds 4
 
-$timer = 0
-$ready = $false
-while ($timer -lt 30) {
-    if ($backendProc.HasExited) {
+$backendReady = $false
+for ($i = 0; $i -lt 30; $i++) {
+    if ($backendWin.HasExited) {
         Write-Host ""
-        Write-Host "    ERROR: Backend process exited early (PID $($backendProc.Id))" -ForegroundColor Red
+        Write-Host "    ERROR: Backend window closed unexpectedly. Check the backend window." -ForegroundColor Red
         break
     }
     try {
-        $resp = Invoke-WebRequest -Uri "http://127.0.0.1:8000/health" -UseBasicParsing -ErrorAction SilentlyContinue -TimeoutSec 2
-        if ($resp.StatusCode -eq 200) {
-            $ready = $true
-            break
-        }
-    } catch {
-        Write-Host -NoNewline "." -ForegroundColor Cyan
-    }
-    $timer++
+        $r = Invoke-WebRequest -Uri "http://127.0.0.1:8000/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+        if ($r.StatusCode -eq 200) { $backendReady = $true; break }
+    } catch { Write-Host -NoNewline "." -ForegroundColor DarkCyan }
     Start-Sleep -Seconds 1
 }
-
 Write-Host ""
-if ($ready) {
-    Write-Host "    OK: Backend running on http://localhost:8000" -ForegroundColor Green
+if ($backendReady) {
+    Write-Host "    [OK] Backend ready at http://localhost:8000" -ForegroundColor Green
 } else {
-    Write-Host "    WARNING: Backend health check timed out" -ForegroundColor Yellow
+    Write-Host "    [WARN] Backend not responding yet. Check its window for errors." -ForegroundColor Yellow
 }
-
 Write-Host ""
 
-# STEP 3: Frontend
-Write-Host "[3] Starting Frontend..." -ForegroundColor Cyan
+# -- Step 3: Frontend --------------------------------------------------------
+Write-Host "[3] Starting Frontend (port 5173)..." -ForegroundColor Cyan
 
-$nodePath = "C:\Program Files\nodejs"
-$npmCmd  = "$nodePath\npm.cmd"
+Set-Content -Path $FrontendLauncher -Encoding UTF8 -Value @"
+`$Host.UI.RawUI.WindowTitle = 'AI Assistant - Frontend (port 5173)'
+Set-Location '$FrontendPath'
+Write-Host 'Frontend starting...' -ForegroundColor Cyan
+& '$npmExe' run dev
+Write-Host ''
+Write-Host '=== Frontend has stopped. See errors above. ===' -ForegroundColor Red
+Read-Host 'Press Enter to close'
+"@
 
-$frontendProc = Start-Process -FilePath $npmCmd `
-    -ArgumentList "run dev" `
-    -WorkingDirectory $FrontendPath `
-    -PassThru -WindowStyle Hidden
+$frontendWin = Start-Process powershell `
+    -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$FrontendLauncher`"" `
+    -PassThru
 
-"frontend=$($frontendProc.Id)" | Add-Content $PidFile
-Write-Host "    Frontend PID: $($frontendProc.Id)" -ForegroundColor Yellow
+$frontendWin.Id | Set-Content $FrontendPidFile
+Write-Host "    Window PID $($frontendWin.Id) saved to .frontend.pid" -ForegroundColor Yellow
+Write-Host "    Polling http://localhost:5173" -ForegroundColor Yellow
+Start-Sleep -Seconds 6
 
-Write-Host "    Waiting for frontend to start..." -ForegroundColor Yellow
-Start-Sleep -Seconds 5
-
-$timer = 0
-$ready = $false
-while ($timer -lt 40) {
+$frontendReady = $false
+for ($i = 0; $i -lt 40; $i++) {
+    if ($frontendWin.HasExited) {
+        Write-Host ""
+        Write-Host "    ERROR: Frontend window closed unexpectedly. Check the frontend window." -ForegroundColor Red
+        break
+    }
     try {
-        $resp = Invoke-WebRequest -Uri "http://127.0.0.1:5173" -UseBasicParsing -ErrorAction SilentlyContinue -TimeoutSec 2
-        if ($resp.StatusCode -eq 200) {
-            $ready = $true
-            break
-        }
-    } catch {
-        Write-Host -NoNewline "." -ForegroundColor Cyan
-    }
-    $timer++
+        $r = Invoke-WebRequest -Uri "http://127.0.0.1:5173" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+        if ($r.StatusCode -eq 200) { $frontendReady = $true; break }
+    } catch { Write-Host -NoNewline "." -ForegroundColor DarkCyan }
     Start-Sleep -Seconds 1
 }
-
 Write-Host ""
-if ($ready) {
-    Write-Host "    OK: Frontend running on http://localhost:5173" -ForegroundColor Green
+if ($frontendReady) {
+    Write-Host "    [OK] Frontend ready at http://localhost:5173" -ForegroundColor Green
 } else {
-    Write-Host "    WARNING: Frontend still building (this is normal for first run)" -ForegroundColor Yellow
+    Write-Host "    [WARN] Frontend not responding yet (normal on first run -- Vite is building)." -ForegroundColor Yellow
 }
-
 Write-Host ""
 
-# STEP 4: Status
-Write-Host "[OK] All systems ready!" -ForegroundColor Green
-Write-Host ""
-Write-Host "Services:" -ForegroundColor Green
-Write-Host "  Backend   : http://localhost:8000" -ForegroundColor Green
-Write-Host "  Frontend  : http://localhost:5173" -ForegroundColor Green
-Write-Host "  Ollama    : http://localhost:11434" -ForegroundColor Green
-Write-Host ""
-
-Write-Host "Opening browser..." -ForegroundColor Yellow
-Start-Sleep -Seconds 2
-try {
-    Start-Process "http://localhost:5173"
-} catch {
-    Write-Host "Could not open browser. Visit: http://localhost:5173" -ForegroundColor Yellow
-}
-
-Write-Host ""
-Write-Host "Press Ctrl+C to stop all services" -ForegroundColor Gray
+# -- Summary ----------------------------------------------------------------
+Write-Host "================================================" -ForegroundColor Green
+Write-Host "   AI Assistant is Running                      " -ForegroundColor Green
+Write-Host "------------------------------------------------" -ForegroundColor Green
+Write-Host "   Backend  : http://localhost:8000             " -ForegroundColor Green
+Write-Host "   Frontend : http://localhost:5173             " -ForegroundColor Green
+Write-Host "   Ollama   : http://localhost:11434            " -ForegroundColor Green
+Write-Host "------------------------------------------------" -ForegroundColor Green
+Write-Host "   To STOP : run .\STOP_PROJECT.ps1             " -ForegroundColor Green
+Write-Host "================================================" -ForegroundColor Green
 Write-Host ""
 
-# Monitor until Ctrl+C
-try {
-    while ($true) {
-        if ($backendProc.HasExited) {
-            Write-Host ""
-            Write-Host "ERROR: Backend process exited (code $($backendProc.ExitCode))" -ForegroundColor Red
-            break
-        }
-        if ($frontendProc.HasExited) {
-            Write-Host ""
-            Write-Host "ERROR: Frontend process exited (code $($frontendProc.ExitCode))" -ForegroundColor Red
-            break
-        }
-        Start-Sleep -Seconds 5
-    }
-} catch {
-    # Ctrl+C
-}
+try { Start-Process "http://localhost:5173" } catch {}
 
-# Cleanup
-Write-Host ""
-Write-Host "Shutting down..." -ForegroundColor Yellow
-& "$WorkspaceRoot\STOP_PROJECT.ps1"
-Write-Host "Done." -ForegroundColor Green
-Write-Host ""
+# -- EXIT -- no monitor loop ------------------------------------------------
+# Services run in their own visible windows and continue independently.
+# Use .\STOP_PROJECT.ps1 to shut them down.
