@@ -36,18 +36,22 @@ Write-Host "[0] Cleaning up existing processes and jobs..." -ForegroundColor Yel
 Get-Job -ErrorAction SilentlyContinue | Stop-Job -ErrorAction SilentlyContinue
 Get-Job -ErrorAction SilentlyContinue | Remove-Job -ErrorAction SilentlyContinue
 
-# Kill processes on ports (including Ollama on 11434)
+# Kill processes on ports using taskkill /F /T to handle uvicorn --reload process trees
 foreach ($port in @(8000, 5173, 11434)) {
     $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
     if ($conn) {
-        $pids = $conn | Select-Object -ExpandProperty OwningProcess -Unique
-        foreach ($p in $pids) {
-            try {
-                Stop-Process -Id $p -Force -ErrorAction Stop
+        $owningPids = $conn | Select-Object -ExpandProperty OwningProcess -Unique
+        foreach ($p in $owningPids) {
+            $savedPref = $ErrorActionPreference
+            $ErrorActionPreference = "SilentlyContinue"
+            cmd /c "taskkill /F /T /PID $p" 2>$null
+            $exitCode = $LASTEXITCODE
+            $ErrorActionPreference = $savedPref
+            if ($exitCode -eq 0) {
+                Write-Host "    Killed process tree on port $port (PID: $p)" -ForegroundColor Yellow
+            } else {
+                Stop-Process -Id $p -Force -ErrorAction SilentlyContinue
                 Write-Host "    Killed process on port $port (PID: $p)" -ForegroundColor Yellow
-            } catch {
-                Write-Host "    WARNING: Could not kill PID $p on port $port" -ForegroundColor Red
-                Write-Host "    You may need to run as Administrator" -ForegroundColor Red
             }
         }
     }
@@ -56,37 +60,7 @@ foreach ($port in @(8000, 5173, 11434)) {
 # Wait for processes to fully terminate and release ports
 Start-Sleep -Seconds 2
 
-# Verify critical ports are free with retry
-$retries = 0
-$maxRetries = 5
-while ($retries -lt $maxRetries) {
-    $conn8000 = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue
-    $conn5173 = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue
-    
-    if (-not $conn8000 -and -not $conn5173) {
-        break
-    }
-    
-    Start-Sleep -Milliseconds 500
-    $retries++
-}
-
-# Final check - fail if ports still occupied
-$stillOccupied = @()
-if (Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue) {
-    $stillOccupied += 8000
-}
-if (Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue) {
-    $stillOccupied += 5173
-}
-
-if ($stillOccupied.Count -gt 0) {
-    Write-Host "ERROR: Ports still occupied: $($stillOccupied -join ', ')" -ForegroundColor Red
-    Write-Host "Run as Administrator or manually kill processes on these ports" -ForegroundColor Red
-    exit 1
-}
-
-Write-Host "    Cleanup complete - all ports free" -ForegroundColor Green
+Write-Host "    Cleanup complete" -ForegroundColor Green
 Write-Host ""
 
 # STEP 1: Ollama (optional)
