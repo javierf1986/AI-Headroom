@@ -11,10 +11,23 @@ if (-not $isAdmin) {
 }
 
 $WorkspaceRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$PidFile = "$WorkspaceRoot\.running_pids"
 
 Write-Host "`n[STOP] Stopping AI Assistant services...`n" -ForegroundColor Yellow
 
-# ── 1. Kill by port (most reliable) ─────────────────────────────────────────
+# ── 0. Kill by saved PIDs (most precise — written by START_PROJECT.ps1) ──────
+if (Test-Path $PidFile) {
+    Get-Content $PidFile | ForEach-Object {
+        if ($_ -match '=(\d+)$') {
+            $p = [int]$Matches[1]
+            cmd /c "taskkill /F /T /PID $p" 2>$null
+            Write-Host "  Killed saved PID $p ($_)" -ForegroundColor Yellow
+        }
+    }
+    Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
+}
+
+# ── 1. Kill by port (catches anything not in the PID file) ───────────────────
 foreach ($port in @(8000, 5173, 5174, 11434)) {
     $conns = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue |
              Where-Object { $_.State -in @('Listen','Established') }

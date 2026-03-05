@@ -51,22 +51,31 @@ if (-not $SkipOllama) {
     Write-Host ""
 }
 
+# PID file — lets STOP_PROJECT kill processes directly by PID
+$PidFile = "$WorkspaceRoot\.running_pids"
+
 # STEP 2: Backend
 Write-Host "[2] Starting Backend API..." -ForegroundColor Cyan
 
-$backendJob = Start-Job -ScriptBlock {
-    param($Path, $Exe)
-    Set-Location $Path
-    $env:PYTHONPATH = $Path
-    & $Exe -m uvicorn backend.app:app --host 0.0.0.0 --port 8000 2>&1
-} -ArgumentList $BackendPath, $PythonExe -Name "Backend"
+$env:PYTHONPATH = $BackendPath
+$backendProc = Start-Process -FilePath $PythonExe `
+    -ArgumentList "-m uvicorn backend.app:app --host 0.0.0.0 --port 8000" `
+    -WorkingDirectory $BackendPath `
+    -PassThru -WindowStyle Hidden
 
+"backend=$($backendProc.Id)" | Set-Content $PidFile
+Write-Host "    Backend PID: $($backendProc.Id)" -ForegroundColor Yellow
 Write-Host "    Waiting for backend to start..." -ForegroundColor Yellow
 Start-Sleep -Seconds 3
 
 $timer = 0
 $ready = $false
 while ($timer -lt 30) {
+    if ($backendProc.HasExited) {
+        Write-Host ""
+        Write-Host "    ERROR: Backend process exited early (PID $($backendProc.Id))" -ForegroundColor Red
+        break
+    }
     try {
         $resp = Invoke-WebRequest -Uri "http://127.0.0.1:8000/health" -UseBasicParsing -ErrorAction SilentlyContinue -TimeoutSec 2
         if ($resp.StatusCode -eq 200) {
@@ -84,8 +93,7 @@ Write-Host ""
 if ($ready) {
     Write-Host "    OK: Backend running on http://localhost:8000" -ForegroundColor Green
 } else {
-    Write-Host "    WARNING: Health check timed out, but backend may still be starting..." -ForegroundColor Yellow
-    Write-Host "    Check http://localhost:8000 manually if needed" -ForegroundColor Yellow
+    Write-Host "    WARNING: Backend health check timed out" -ForegroundColor Yellow
 }
 
 Write-Host ""
@@ -93,14 +101,16 @@ Write-Host ""
 # STEP 3: Frontend
 Write-Host "[3] Starting Frontend..." -ForegroundColor Cyan
 
-$env:Path = "C:\Program Files\nodejs;$env:Path"
+$nodePath = "C:\Program Files\nodejs"
+$npmCmd  = "$nodePath\npm.cmd"
 
-$frontendJob = Start-Job -ScriptBlock {
-    param($Path)
-    Set-Location $Path
-    $env:Path = "C:\Program Files\nodejs;$env:Path"
-    npm run dev 2>&1
-} -ArgumentList $FrontendPath -Name "Frontend"
+$frontendProc = Start-Process -FilePath $npmCmd `
+    -ArgumentList "run dev" `
+    -WorkingDirectory $FrontendPath `
+    -PassThru -WindowStyle Hidden
+
+"frontend=$($frontendProc.Id)" | Add-Content $PidFile
+Write-Host "    Frontend PID: $($frontendProc.Id)" -ForegroundColor Yellow
 
 Write-Host "    Waiting for frontend to start..." -ForegroundColor Yellow
 Start-Sleep -Seconds 5
@@ -151,61 +161,28 @@ Write-Host ""
 Write-Host "Press Ctrl+C to stop all services" -ForegroundColor Gray
 Write-Host ""
 
-# Keep running and monitor jobs
+# Monitor until Ctrl+C
 try {
     while ($true) {
-        $backend = Get-Job -Name Backend -ErrorAction SilentlyContinue
-        $frontend = Get-Job -Name Frontend -ErrorAction SilentlyContinue
-        
-        # Check for valid job states (Running or NotStarted)
-        $validStates = @("Running", "NotStarted")
-        
-        if ($backend -and $backend.State -notin $validStates) {
+        if ($backendProc.HasExited) {
             Write-Host ""
-            Write-Host "ERROR: Backend job in unexpected state: $($backend.State)" -ForegroundColor Red
-            $output = Receive-Job -Job $backend -ErrorAction SilentlyContinue
-            if ($output) {
-                Write-Host $output
-            }
+            Write-Host "ERROR: Backend process exited (code $($backendProc.ExitCode))" -ForegroundColor Red
             break
         }
-        
-        if ($frontend -and $frontend.State -notin $validStates) {
+        if ($frontendProc.HasExited) {
             Write-Host ""
-            Write-Host "ERROR: Frontend job in unexpected state: $($frontend.State)" -ForegroundColor Red
-            $output = Receive-Job -Job $frontend -ErrorAction SilentlyContinue
-            if ($output) {
-                Write-Host $output
-            }
+            Write-Host "ERROR: Frontend process exited (code $($frontendProc.ExitCode))" -ForegroundColor Red
             break
         }
-        
         Start-Sleep -Seconds 5
     }
 } catch {
-    # Catch Ctrl+C
+    # Ctrl+C
 }
 
 # Cleanup
 Write-Host ""
 Write-Host "Shutting down..." -ForegroundColor Yellow
-
-# Stop jobs gracefully
-Get-Job -ErrorAction SilentlyContinue | Stop-Job -ErrorAction SilentlyContinue
-Start-Sleep -Seconds 2
-
-# Force-kill any remaining processes on our ports
-foreach ($port in @(8000, 5173)) {
-    $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
-    if ($conn) {
-        $pids = $conn | Select-Object -ExpandProperty OwningProcess -Unique
-        foreach ($p in $pids) {
-            Stop-Process -Id $p -Force -ErrorAction SilentlyContinue
-        }
-    }
-}
-
-# Remove all jobs
-Get-Job -ErrorAction SilentlyContinue | Remove-Job -ErrorAction SilentlyContinue
+& "$WorkspaceRoot\STOP_PROJECT.ps1"
 Write-Host "Done." -ForegroundColor Green
 Write-Host ""
