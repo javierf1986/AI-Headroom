@@ -3,16 +3,6 @@ param(
     [switch]$SkipOllama
 )
 
-# Self-elevate to Administrator if not already elevated.
-# Without admin rights, taskkill cannot kill processes owned by other sessions.
-$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
-    $argList = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Model `"$Model`""
-    if ($SkipOllama) { $argList += " -SkipOllama" }
-    Start-Process powershell -Verb RunAs -ArgumentList $argList
-    exit
-}
-
 $ErrorActionPreference = "Stop"
 $WorkspaceRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 
@@ -40,57 +30,9 @@ if (-not (Test-Path $FrontendPath)) {
 }
 
 # STEP 0: Clean up existing jobs and processes
-Write-Host "[0] Cleaning up existing processes and jobs..." -ForegroundColor Yellow
-
-# Kill old jobs first (prevents orphaned background jobs)
-Get-Job -ErrorAction SilentlyContinue | Stop-Job -ErrorAction SilentlyContinue
-Get-Job -ErrorAction SilentlyContinue | Remove-Job -ErrorAction SilentlyContinue
-
-# Helper: kill all processes listening on a given port
-function Kill-Port {
-    param([int]$Port)
-    $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
-    if (-not $conn) { return }
-    $owningPids = $conn | Select-Object -ExpandProperty OwningProcess -Unique
-    foreach ($p in $owningPids) {
-        $savedPref = $ErrorActionPreference
-        $ErrorActionPreference = "SilentlyContinue"
-        cmd /c "taskkill /F /T /PID $p" 2>$null
-        $exitCode = $LASTEXITCODE
-        $ErrorActionPreference = $savedPref
-        if ($exitCode -eq 0) {
-            Write-Host "    Killed process tree on port $Port (PID: $p)" -ForegroundColor Yellow
-        } else {
-            Stop-Process -Id $p -Force -ErrorAction SilentlyContinue
-            Write-Host "    Killed process on port $Port (PID: $p)" -ForegroundColor Yellow
-        }
-    }
-}
-
-# Kill all ports first pass
-foreach ($port in @(8000, 5173, 11434)) {
-    Kill-Port -Port $port
-}
-
-# Wait, then retry port 8000 until it is confirmed free (up to 15 seconds)
-$elapsed = 0
-while ($elapsed -lt 15) {
-    Start-Sleep -Seconds 1
-    $elapsed++
-    $still = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue
-    if (-not $still) { break }
-    Write-Host "    Port 8000 still occupied, retrying kill... ($elapsed s)" -ForegroundColor DarkYellow
-    Kill-Port -Port 8000
-}
-
-$still8000 = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue
-if ($still8000) {
-    Write-Host "    WARNING: Port 8000 still occupied after cleanup. Backend may fail to bind." -ForegroundColor Red
-} else {
-    Write-Host "    Port 8000 is free." -ForegroundColor Green
-}
-
-Write-Host "    Cleanup complete" -ForegroundColor Green
+Write-Host "[0] Stopping any existing services..." -ForegroundColor Yellow
+& "$WorkspaceRoot\STOP_PROJECT.ps1"
+Write-Host "    Done" -ForegroundColor Green
 Write-Host ""
 
 # STEP 1: Ollama (optional)
