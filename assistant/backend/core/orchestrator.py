@@ -12,6 +12,12 @@ from backend.core.session_store import SessionStore
 from backend.llm.llama_cpp_client import LLMClientAdapter
 from backend.tools.registry import ToolRegistry
 
+# Optional — only imported when memory is wired
+try:
+    from backend.core.memory_manager import MemoryManager as _MemoryManager
+except ImportError:
+    _MemoryManager = None  # type: ignore[assignment,misc]
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,6 +31,7 @@ class Orchestrator:
         tts_worker: TTSWorker,
         avatar_service: AvatarService,
         sprite_library: SpriteLibrary,
+        memory_manager: Any | None = None,
     ) -> None:
         self._event_bus = event_bus
         self._session_store = session_store
@@ -33,10 +40,24 @@ class Orchestrator:
         self._tts_worker = tts_worker
         self._avatar_service = avatar_service
         self._sprite_library = sprite_library
+        self._memory_manager = memory_manager
 
     def process_text(self, request: ChatRequest) -> ChatResponse:
         logger.info(f"[ORCHESTRATOR] Received request with language='{request.language}'")
         self._session_store.append(request.session_id, "user", request.text)
+
+        # Load long-term memory context (summary + semantically relevant turns)
+        memory_context: list[dict] = []
+        if self._memory_manager is not None:
+            try:
+                memory_context = self._memory_manager.load_context(
+                    client_id=request.client_id or request.session_id,
+                    current_query=request.text,
+                )
+                if memory_context:
+                    logger.info("[ORCHESTRATOR] Injecting %d memory context message(s)", len(memory_context))
+            except Exception as exc:
+                logger.warning("[ORCHESTRATOR] Memory load failed (continuing without): %s", exc)
 
         # Extract persona from active sprite (if available)
         persona = None
@@ -52,9 +73,13 @@ class Orchestrator:
         tools = self._tool_registry.list_tools()
         tool_schemas = [t["schema"] for t in tools]
 
+        # Build enriched session messages: memory context first, then in-session history
+        in_session_messages = self._session_store.get(request.session_id)
+        enriched_messages = memory_context + in_session_messages
+
         llm_reply = self._llm_client.generate(
             prompt=request.text,
-            session_messages=self._session_store.get(request.session_id),
+            session_messages=enriched_messages,
             tools=tool_schemas,
             persona=persona,
             response_language=request.language,
@@ -100,6 +125,18 @@ class Orchestrator:
         
         self._session_store.append(request.session_id, "assistant", final_text)
         self._event_bus.publish("assistant_response_text", {"session_id": request.session_id, "text": final_text})
+
+        # Persist exchange to Chroma (synchronous; non-blocking on failure)
+        if self._memory_manager is not None:
+            try:
+                self._memory_manager.save_exchange(
+                    client_id=request.client_id or request.session_id,
+                    session_id=request.session_id,
+                    user_msg=request.text,
+                    assistant_msg=final_text,
+                )
+            except Exception as exc:
+                logger.warning("[ORCHESTRATOR] Memory save failed: %s", exc)
 
         # Extract glitch configuration from sprite
         sprite_glitch_config = None

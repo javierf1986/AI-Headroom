@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator
 from contextlib import contextmanager
 
 from sqlalchemy import create_engine
@@ -20,12 +21,12 @@ _SessionLocal: sessionmaker[Session] | None = None
 def get_engine() -> Engine:
     global _engine
     if _engine is None:
-        connect_args: dict[str, int] = {}
-        if settings.database_url.startswith("postgresql"):
-            connect_args = {"connect_timeout": 2}
+        connect_args: dict = {}
+        if settings.database_url.startswith("sqlite"):
+            # Allow SQLite to be used across threads (FastAPI runs in a thread pool)
+            connect_args = {"check_same_thread": False}
         _engine = create_engine(
             settings.database_url,
-            pool_pre_ping=True,
             connect_args=connect_args,
         )
     return _engine
@@ -38,23 +39,15 @@ def get_session_factory() -> sessionmaker[Session]:
     return _SessionLocal
 
 
-def init_db() -> bool:
-    try:
-        from backend.core import models  # noqa: F401
+def init_db() -> None:
+    from backend.core import models  # noqa: F401
 
-        engine = get_engine()
-        with engine.connect() as conn:
-            conn.exec_driver_sql("SELECT 1")
-        Base.metadata.create_all(bind=engine)
-        logger.info("Database initialized successfully")
-        return True
-    except Exception as exc:
-        logger.warning("Database unavailable, falling back to in-memory preferences: %s", exc)
-        return False
+    Base.metadata.create_all(bind=get_engine())
+    logger.info("Database initialized (SQLite)")
 
 
 @contextmanager
-def session_scope() -> Session:
+def session_scope() -> Generator[Session, None, None]:
     session = get_session_factory()()
     try:
         yield session

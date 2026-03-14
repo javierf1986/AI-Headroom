@@ -5,7 +5,7 @@
   "frame_width": 256,
   "frame_height": 256,
   "frames_per_row": 4,
-  "total_frames": 16,
+  "total_frames": 12,
   "viseme_map": {
     "A": 2,
     "E": 3,
@@ -17,8 +17,8 @@
     "silence": 0
   },
   "blink_frames": [
-    14,
-    15
+    10,
+    11
   ],
   "idle_frames": [
     0,

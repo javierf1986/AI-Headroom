@@ -26,7 +26,7 @@ def _as_path(value: str | None, default_relative: str) -> str:
 @dataclass(slots=True)
 class Settings:
     ollama_api_url: str = os.getenv("OLLAMA_API_URL", "http://localhost:11434/v1")
-    preferred_model_keyword: str = os.getenv("LLM_PREFERRED_MODEL", "mistral")
+    preferred_model_keyword: str = os.getenv("LLM_PREFERRED_MODEL", "llama3.1")
     tts_provider: str = os.getenv("TTS_PROVIDER", "edge")
     default_voice_en: str = os.getenv("TTS_VOICE_EN", "en-US-AriaNeural")
     default_voice_es: str = os.getenv("TTS_VOICE_ES", "es-MX-DaliaNeural")
@@ -36,7 +36,7 @@ class Settings:
     frontend_port: int = _as_int(os.getenv("FRONTEND_PORT"), 5173)
     database_url: str = os.getenv(
         "DATABASE_URL",
-        "postgresql+psycopg://postgres:postgres@localhost:5432/ai_assistant",
+        "sqlite:///./ai_assistant.db",
     )
     default_client_id: str = os.getenv("DEFAULT_CLIENT_ID", "local-default")
 

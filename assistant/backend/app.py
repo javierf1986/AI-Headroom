@@ -9,7 +9,7 @@ import sys
 from asyncio import Queue
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
@@ -25,6 +25,7 @@ from backend.core.schemas import ChatRequest
 from backend.core.settings import settings
 from backend.core.session_store import SessionStore
 from backend.core.text_encoding import normalize_text_encoding
+from backend.core.memory_manager import MemoryManager
 from backend.llm.llama_cpp_client import LLMClientAdapter
 from backend.tools.mock_datetime_tool import DateTimeTool
 from backend.tools.mock_echo_tool import EchoTool
@@ -187,6 +188,17 @@ def create_app() -> FastAPI:
     avatar_service = AvatarService(sprite_library)
     preferences_repo = PreferencesRepository()
 
+    # Long-term memory (ChromaDB). Fails silently if Ollama embedding unavailable.
+    try:
+        memory_manager = MemoryManager(
+            ollama_base_url=settings.ollama_api_url.replace("/v1", "").rstrip("/"),
+            model_name=settings.preferred_model_keyword,
+        )
+        logger.info("[APP] MemoryManager initialized")
+    except Exception as _mm_exc:
+        memory_manager = None
+        logger.warning("[APP] MemoryManager unavailable, running without long-term memory: %s", _mm_exc)
+
     tool_registry = ToolRegistry(permission_manager=permission_manager)
     tool_registry.register(EchoTool())
     tool_registry.register(DateTimeTool())
@@ -199,6 +211,7 @@ def create_app() -> FastAPI:
         tts_worker=tts_worker,
         avatar_service=avatar_service,
         sprite_library=sprite_library,
+        memory_manager=memory_manager,
     )
 
     @app.get("/health")
@@ -263,7 +276,7 @@ def create_app() -> FastAPI:
         return {"preferences": PreferencesRepository.to_dict(prefs)}
 
     @app.post("/chat")
-    async def chat(raw_request: Request) -> Response:
+    async def chat(raw_request: Request, background_tasks: BackgroundTasks) -> Response:
         try:
             raw_body = await raw_request.body()
             decoded_body = raw_body.decode("utf-8")
@@ -296,6 +309,11 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except RuntimeError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+        # Enqueue background memory summary update (does not block response)
+        if memory_manager is not None:
+            _client_id = resolved_client_id
+            background_tasks.add_task(memory_manager.run_summary_update, _client_id)
 
         payload = {
             "session_id": response.session_id,

@@ -16,18 +16,9 @@ class PreferenceRecord:
 
 class PreferencesRepository:
     def __init__(self) -> None:
-        self._db_ready = init_db()
-        self._memory: dict[str, PreferenceRecord] = {}
-
-    def _memory_get(self, client_id: str) -> PreferenceRecord:
-        if client_id not in self._memory:
-            self._memory[client_id] = PreferenceRecord(client_id=client_id)
-        return self._memory[client_id]
+        init_db()
 
     def get(self, client_id: str) -> PreferenceRecord:
-        if not self._db_ready:
-            return self._memory_get(client_id)
-
         with session_scope() as session:
             model = session.scalar(select(UserPreference).where(UserPreference.client_id == client_id))
             if model is None:
@@ -46,12 +37,6 @@ class PreferencesRepository:
 
         if not normalized_updates:
             return self.get(client_id)
-
-        if not self._db_ready:
-            current = self._memory_get(client_id)
-            for key, value in normalized_updates.items():
-                setattr(current, key, value)
-            return current
 
         with session_scope() as session:
             model = session.scalar(select(UserPreference).where(UserPreference.client_id == client_id))

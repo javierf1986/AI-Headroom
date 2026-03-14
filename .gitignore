@@ -3,3 +3,21 @@
 .frontend.pid
 .backend_launch.ps1
 .frontend_launch.ps1
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Runtime databases & vector store
+*.db
+assistant/artifacts/chroma/
+assistant/assistant/
+
+# Generated audio artifacts
+assistant/artifacts/audio/*.mp3
+assistant/artifacts/audio/*.wav
+
+# Node / frontend
+node_modules/
+dist/
